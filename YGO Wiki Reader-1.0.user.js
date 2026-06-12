@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         YGO Wiki Reader
 // @namespace    
-// @version      1.0
+// @version      1.1
 // @description  Improve readability + preview + card image
 // @author       5N0WM4N_256
 // @match        https://yugioh-wiki.net/*
 // @grant        none
-// @updateURL    
-// @downloadURL  
+// @updateURL    https://github.com/183-U001/YGO_wiki_tools/raw/refs/heads/main/YGO%20Wiki%20Reader-1.0.user.js
+// @downloadURL  https://github.com/183-U001/YGO_wiki_tools/raw/refs/heads/main/YGO%20Wiki%20Reader-1.0.user.js
 // @supportURL   https://github.com/183-U001/
 // @license      MIT 
 // ==/UserScript==
