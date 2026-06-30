@@ -284,32 +284,86 @@ previewStyle.textContent = `
 document.head.appendChild(previewStyle);
 
 let hoverTimer = null;
+let hideTimer = null;
+let currentLink = null;
+let currentAnchor = null;
+let overPreview = false;
 
-function showPreview(x, y, text) {
+
+previewBox.addEventListener("mouseenter", () => {
+  overPreview = true;
+  clearTimeout(hideTimer);
+});
+
+previewBox.addEventListener("mouseleave", () => {
+  overPreview = false;
+  scheduleHide();
+});
+
+
+function showPreview(link, text) {
+  currentAnchor = link;
+
   previewBox.textContent = text;
+  previewBox.scrollTop = 0;
   previewBox.style.display = "block";
 
+  positionPreview();
+}
+
+function positionPreview() {
+  if (!currentAnchor || previewBox.style.display === "none") return;
+
+  const rect = currentAnchor.getBoundingClientRect();
+
   const padding = 20;
+  const margin = 20;
+
   const boxWidth = previewBox.offsetWidth;
   const boxHeight = previewBox.offsetHeight;
 
-  let left = x + 20;
-  let top = y + 20;
+  let left = rect.right + margin;
+  let top = rect.top;
 
+  // 右にはみ出すなら左へ
   if (left + boxWidth > window.innerWidth - padding) {
-    left = window.innerWidth - boxWidth - padding;
+    left = rect.left - boxWidth - margin;
   }
+
+  // 左にもはみ出すなら右へ戻す
+  if (left < padding) {
+    left = rect.right + margin;
+  }
+
+  // 下にはみ出すなら補正
   if (top + boxHeight > window.innerHeight - padding) {
     top = window.innerHeight - boxHeight - padding;
   }
 
-  previewBox.style.left = left + "px";
-  previewBox.style.top = top + "px";
+  // 上にはみ出すなら補正
+  if (top < padding) {
+    top = padding;
+  }
+
+  previewBox.style.left = `${left}px`;
+  previewBox.style.top = `${top}px`;
 }
 
 function hidePreview() {
   previewBox.style.display = "none";
+  currentAnchor = null;
 }
+
+function scheduleHide() {
+  clearTimeout(hideTimer);
+
+  hideTimer = setTimeout(() => {
+    if (!currentLink && !overPreview) {
+      hidePreview();
+    }
+  }, 400); // 400〜500msくらいがおすすめ
+}
+
 
 async function fetchPreview(url) {
   if (previewCache.has(url)) {
@@ -355,23 +409,49 @@ document.addEventListener("mouseover", (e) => {
   if (!link.href.startsWith("https://yugioh-wiki.net/")) return;
 
   const linkText = link.textContent.trim();
-
   // 《カード名》形式のみ
   if (!/^《[^》]+》$/.test(linkText)) return;
 
+  currentLink = link;
+
+  clearTimeout(hoverTimer);
+  clearTimeout(hideTimer);
+
   hoverTimer = setTimeout(async () => {
+    // 他のリンクへ移動していたら表示しない
+    if (currentLink !== link) return;
+
     const text = await fetchPreview(link.href);
-    showPreview(e.clientX, e.clientY, text);
+
+    // 取得中に移動していたら表示しない
+    if (currentLink !== link) return;
+
+    showPreview(link, text);
   }, 300);
 });
 
 document.addEventListener("mouseout", (e) => {
-  if (hoverTimer) clearTimeout(hoverTimer);
-  hidePreview();
+  const link = e.target.closest("a");
+  if (!link) return;
+
+  if (link !== currentLink) return;
+
+  // リンク内の子要素へ移動しただけなら無視
+  if (e.relatedTarget && link.contains(e.relatedTarget)) {
+    return;
+  }
+
+  currentLink = null;
+  clearTimeout(hoverTimer);
+
+  scheduleHide();
 });
 
+window.addEventListener("scroll", positionPreview, {
+  passive: true
+});
 
-
+window.addEventListener("resize", positionPreview);
 
   /* =========================
      5. 実行
